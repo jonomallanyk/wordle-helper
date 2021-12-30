@@ -1,0 +1,21 @@
+{
+  "name": "wordle-helper",
+  "version": "1.0.0",
+  "description": "Wordle helper app built in Elm",
+  "main": "index.js",
+  "scripts": {
+    "start": "parcel public/index.html",
+    "build": "parcel build public/index.html --dist-dir build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jonomallanyk/wordle-helper.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jonomallanyk/wordle-helper/issues"
+  },
+  "homepage": "https://github.com/jonomallanyk/wordle-helper#readme"
+}
