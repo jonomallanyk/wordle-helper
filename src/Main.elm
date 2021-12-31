@@ -7,6 +7,7 @@ import Html exposing (Html, button, div, h1, h2, p, span, text)
 import Html.Attributes exposing (class, type_)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
+import Letter exposing (Letter, Status(..), initLetters)
 import Words exposing (wordList)
 
 
@@ -23,34 +24,7 @@ main =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { activeWords = wordList
-      , letters =
-            [ Letter 'a' Unknown
-            , Letter 'b' Unknown
-            , Letter 'c' Unknown
-            , Letter 'd' Unknown
-            , Letter 'e' Unknown
-            , Letter 'f' Unknown
-            , Letter 'g' Unknown
-            , Letter 'h' Unknown
-            , Letter 'i' Unknown
-            , Letter 'j' Unknown
-            , Letter 'k' Unknown
-            , Letter 'l' Unknown
-            , Letter 'm' Unknown
-            , Letter 'n' Unknown
-            , Letter 'o' Unknown
-            , Letter 'p' Unknown
-            , Letter 'q' Unknown
-            , Letter 'r' Unknown
-            , Letter 's' Unknown
-            , Letter 't' Unknown
-            , Letter 'u' Unknown
-            , Letter 'v' Unknown
-            , Letter 'w' Unknown
-            , Letter 'x' Unknown
-            , Letter 'y' Unknown
-            , Letter 'z' Unknown
-            ]
+      , letters = initLetters
       , firstLetter =
             { char = Nothing
             , status = Unknown
@@ -112,19 +86,6 @@ type alias Guess =
     , status : Status
     , position : Position
     }
-
-
-type alias Letter =
-    { char : Char
-    , status : Status
-    }
-
-
-type Status
-    = Unknown
-    | Incorrect
-    | Correct
-    | Locked
 
 
 type Position
