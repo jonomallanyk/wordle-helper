@@ -1,10 +1,12 @@
 module Main exposing (main)
 
 import Browser
+import Browser.Events
 import Debug exposing (toString)
 import Html exposing (Html, button, div, h1, h2, p, span, text)
 import Html.Attributes exposing (class)
 import Html.Events exposing (onClick)
+import Json.Decode as Decode
 import Words exposing (wordList)
 
 
@@ -14,7 +16,7 @@ main =
         { init = init
         , update = update
         , view = view
-        , subscriptions = \_ -> Sub.none
+        , subscriptions = subscriptions
         }
 
 
@@ -50,9 +52,16 @@ init _ =
             }
       , selectedLetter =
             Nothing
+      , newChar =
+            Nothing
       }
     , Cmd.none
     )
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Browser.Events.onKeyUp keyDecoder
 
 
 
@@ -69,6 +78,7 @@ type alias Model =
     , fourthLetter : Letter
     , fifthLetter : Letter
     , selectedLetter : Maybe Letter
+    , newChar : Maybe Char
     }
 
 
@@ -110,6 +120,7 @@ type Position
 type Msg
     = NoOp
     | SelectedLetter Letter
+    | UpdatedChar Char
     | ChangedStatus Letter
 
 
@@ -135,6 +146,11 @@ update msg model =
 
                 Fifth ->
                     { model | selectedLetter = Just model.fifthLetter }
+            , Cmd.none
+            )
+
+        UpdatedChar char ->
+            ( { model | newChar = Just char }
             , Cmd.none
             )
 
@@ -207,10 +223,18 @@ view model =
 viewLetterBox : Maybe Letter -> Letter -> Html Msg
 viewLetterBox maybeSelected letter =
     let
+        isSelected =
+            case maybeSelected of
+                Nothing ->
+                    False
+
+                Just l ->
+                    l == letter
+
         selectedStyle =
             case maybeSelected of
                 Nothing ->
-                    ""
+                    " border-4 border-slate-300"
 
                 Just selected ->
                     if selected == letter then
@@ -235,13 +259,17 @@ viewLetterBox maybeSelected letter =
     in
     div
         [ class ("p-4 text-center w-24 h-24 flex items-center justify-center" ++ statusStyle ++ selectedStyle)
-        , onClick <|
-            case letter.char of
-                Nothing ->
-                    NoOp
+        , if isSelected then
+            onClick <|
+                case letter.char of
+                    Nothing ->
+                        NoOp
 
-                Just _ ->
-                    ChangedStatus letter
+                    Just _ ->
+                        ChangedStatus letter
+
+          else
+            onClick <| SelectedLetter letter
         ]
         [ p
             [ class "mt-0 pt-0 text-7xl leading-none" ]
@@ -252,5 +280,25 @@ viewLetterBox maybeSelected letter =
 
                     Just c ->
                         String.fromChar c
+                            |> String.toUpper
             ]
         ]
+
+
+keyDecoder : Decode.Decoder Msg
+keyDecoder =
+    Decode.map toKey (Decode.field "key" Decode.string)
+
+
+toKey : String -> Msg
+toKey str =
+    case String.uncons str of
+        Just ( char, "" ) ->
+            if Char.isLower char then
+                UpdatedChar char
+
+            else
+                NoOp
+
+        _ ->
+            NoOp
