@@ -122,6 +122,7 @@ type Msg
     | SelectedLetter Letter
     | UpdatedChar Char
     | ChangedStatus Letter
+    | SubmittedWord
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -278,6 +279,32 @@ update msg model =
                     { model | fifthLetter = newLetter }
             , Cmd.none
             )
+
+        SubmittedWord ->
+            ( model, Cmd.none )
+
+
+lettersToWord : Letter -> Letter -> Letter -> Letter -> Letter -> Maybe String
+lettersToWord first second third fourth fifth =
+    let
+        submittedString =
+            letterCharToString first ++ letterCharToString second ++ letterCharToString third ++ letterCharToString fourth ++ letterCharToString fifth
+    in
+    if String.length submittedString == 5 then
+        Just submittedString
+
+    else
+        Nothing
+
+
+letterCharToString : Letter -> String
+letterCharToString letter =
+    case letter.char of
+        Nothing ->
+            ""
+
+        Just char ->
+            String.fromChar char
 
 
 
