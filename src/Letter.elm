@@ -1,4 +1,6 @@
-module Letter exposing (Letter, Status(..), initLetters)
+module Letter exposing (Letter, Status(..), initLetters, updateLetters)
+
+import Dict
 
 
 type alias Letter =
@@ -43,3 +45,24 @@ initLetters =
     , Letter 'y' Unknown
     , Letter 'z' Unknown
     ]
+
+
+updateLetters : Char -> Status -> List Letter -> List Letter
+updateLetters char status letters =
+    letters
+        |> List.map (\letter -> ( letter.char, letter ))
+        |> Dict.fromList
+        |> Dict.update
+            char
+            (\i ->
+                case i of
+                    Just letter ->
+                        Just
+                            { letter
+                                | status = status
+                            }
+
+                    Nothing ->
+                        Nothing
+            )
+        |> Dict.values

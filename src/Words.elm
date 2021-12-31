@@ -1,4 +1,15 @@
-module Words exposing (wordList)
+module Words exposing (removeByLetterInAnyPosition, wordList)
+
+
+removeByLetterInAnyPosition : Char -> List String -> List String
+removeByLetterInAnyPosition char strings =
+    case char of
+        '_' ->
+            strings
+
+        _ ->
+            List.filter (\str -> String.contains (String.fromChar char) str) strings
+
 
 wordList : List String
 wordList =

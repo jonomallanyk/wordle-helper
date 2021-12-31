@@ -7,7 +7,7 @@ import Html exposing (Html, button, div, h1, h2, p, span, text)
 import Html.Attributes exposing (class, type_)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
-import Letter exposing (Letter, Status(..), initLetters)
+import Letter exposing (Letter, Status(..), initLetters, updateLetters)
 import Words exposing (wordList)
 
 
@@ -272,6 +272,30 @@ update msg model =
                             | char = Nothing
                             , status = Unknown
                         }
+
+                extractChar guess =
+                    case guess.char of
+                        Nothing ->
+                            '_'
+
+                        Just c ->
+                            case guess.status of
+                                Unknown ->
+                                    '_'
+
+                                Incorrect ->
+                                    c
+
+                                _ ->
+                                    c
+
+                newLetters =
+                    model.letters
+                        |> Letter.updateLetters (extractChar model.firstLetter) model.firstLetter.status
+                        |> Letter.updateLetters (extractChar secondLetter) secondLetter.status
+                        |> Letter.updateLetters (extractChar thirdLetter) thirdLetter.status
+                        |> Letter.updateLetters (extractChar fourthLetter) fourthLetter.status
+                        |> Letter.updateLetters (extractChar fifthLetter) fifthLetter.status
             in
             if allLettersSet firstLetter secondLetter thirdLetter fourthLetter fifthLetter then
                 case lettersToWord firstLetter secondLetter thirdLetter fourthLetter fifthLetter of
@@ -285,6 +309,14 @@ update msg model =
                             , fourthLetter = lockOrResetGuess model.fourthLetter
                             , fifthLetter = lockOrResetGuess model.fifthLetter
                             , selectedLetterPosition = Nothing
+                            , letters = newLetters
+                            , activeWords =
+                                model.activeWords
+                                    |> Words.removeByLetterInAnyPosition (extractChar (lockOrResetGuess model.firstLetter))
+                                    |> Words.removeByLetterInAnyPosition (extractChar (lockOrResetGuess model.secondLetter))
+                                    |> Words.removeByLetterInAnyPosition (extractChar (lockOrResetGuess model.thirdLetter))
+                                    |> Words.removeByLetterInAnyPosition (extractChar (lockOrResetGuess model.fourthLetter))
+                                    |> Words.removeByLetterInAnyPosition (extractChar (lockOrResetGuess model.fifthLetter))
                           }
                         , Cmd.none
                         )
