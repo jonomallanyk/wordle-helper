@@ -60,7 +60,7 @@ init _ =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Browser.Events.onKeyUp keyDecoder
 
 
@@ -150,9 +150,97 @@ update msg model =
             )
 
         UpdatedChar char ->
-            ( { model | newChar = Just char }
-            , Cmd.none
-            )
+            case model.selectedLetter of
+                Nothing ->
+                    ( model, Cmd.none )
+
+                Just selected ->
+                    let
+                        firstLetter =
+                            model.firstLetter
+
+                        secondLetter =
+                            model.secondLetter
+
+                        thirdLetter =
+                            model.thirdLetter
+
+                        fourthLetter =
+                            model.fourthLetter
+
+                        fifthLetter =
+                            model.fifthLetter
+
+                        updatedModel =
+                            case selected.position of
+                                First ->
+                                    { model
+                                        | firstLetter =
+                                            { firstLetter
+                                                | char = Just char
+                                            }
+                                        , selectedLetter =
+                                            Just
+                                                { firstLetter
+                                                    | char = Just char
+                                                }
+                                    }
+
+                                Second ->
+                                    { model
+                                        | secondLetter =
+                                            { secondLetter
+                                                | char = Just char
+                                            }
+                                        , selectedLetter =
+                                            Just
+                                                { secondLetter
+                                                    | char = Just char
+                                                }
+                                    }
+
+                                Third ->
+                                    { model
+                                        | thirdLetter =
+                                            { thirdLetter
+                                                | char = Just char
+                                            }
+                                        , selectedLetter =
+                                            Just
+                                                { thirdLetter
+                                                    | char = Just char
+                                                }
+                                    }
+
+                                Fourth ->
+                                    { model
+                                        | fourthLetter =
+                                            { fourthLetter
+                                                | char = Just char
+                                            }
+                                        , selectedLetter =
+                                            Just
+                                                { fourthLetter
+                                                    | char = Just char
+                                                }
+                                    }
+
+                                Fifth ->
+                                    { model
+                                        | fifthLetter =
+                                            { fifthLetter
+                                                | char = Just char
+                                            }
+                                        , selectedLetter =
+                                            Just
+                                                { fifthLetter
+                                                    | char = Just char
+                                                }
+                                    }
+                    in
+                    ( updatedModel
+                    , Cmd.none
+                    )
 
         ChangedStatus letter ->
             let
