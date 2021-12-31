@@ -4,7 +4,7 @@ import Browser
 import Browser.Events
 import Debug exposing (toString)
 import Html exposing (Html, button, div, h1, h2, p, span, text)
-import Html.Attributes exposing (class)
+import Html.Attributes exposing (class, type_)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Words exposing (wordList)
@@ -23,8 +23,34 @@ main =
 init : () -> ( Model, Cmd Msg )
 init _ =
     ( { activeWords = wordList
-      , activeLetters = []
-      , eliminatedLetters = []
+      , letters =
+            [ Letter 'a' Unknown
+            , Letter 'b' Unknown
+            , Letter 'c' Unknown
+            , Letter 'd' Unknown
+            , Letter 'e' Unknown
+            , Letter 'f' Unknown
+            , Letter 'g' Unknown
+            , Letter 'h' Unknown
+            , Letter 'i' Unknown
+            , Letter 'j' Unknown
+            , Letter 'k' Unknown
+            , Letter 'l' Unknown
+            , Letter 'm' Unknown
+            , Letter 'n' Unknown
+            , Letter 'o' Unknown
+            , Letter 'p' Unknown
+            , Letter 'q' Unknown
+            , Letter 'r' Unknown
+            , Letter 's' Unknown
+            , Letter 't' Unknown
+            , Letter 'u' Unknown
+            , Letter 'v' Unknown
+            , Letter 'w' Unknown
+            , Letter 'x' Unknown
+            , Letter 'y' Unknown
+            , Letter 'z' Unknown
+            ]
       , firstLetter =
             { char = Nothing
             , status = Unknown
@@ -52,8 +78,13 @@ init _ =
             }
       , selectedLetterPosition =
             Nothing
-      , newChar =
-            Nothing
+      , guessedWord =
+            [ '_'
+            , '_'
+            , '_'
+            , '_'
+            , '_'
+            ]
       }
     , Cmd.none
     )
@@ -65,22 +96,27 @@ init _ =
 
 type alias Model =
     { activeWords : List String
-    , activeLetters : List Char
-    , eliminatedLetters : List Char
-    , firstLetter : Letter
-    , secondLetter : Letter
-    , thirdLetter : Letter
-    , fourthLetter : Letter
-    , fifthLetter : Letter
+    , letters : List Letter
+    , firstLetter : Guess
+    , secondLetter : Guess
+    , thirdLetter : Guess
+    , fourthLetter : Guess
+    , fifthLetter : Guess
     , selectedLetterPosition : Maybe Position
-    , newChar : Maybe Char
+    , guessedWord : List Char
+    }
+
+
+type alias Guess =
+    { char : Maybe Char
+    , status : Status
+    , position : Position
     }
 
 
 type alias Letter =
-    { char : Maybe Char
+    { char : Char
     , status : Status
-    , position : Position
     }
 
 
@@ -114,14 +150,30 @@ type Position
 
 type Msg
     = NoOp
-    | SelectedLetter Letter
+    | SelectedLetter Guess
     | UpdatedChar Char
-    | ChangedStatus Letter
+    | ChangedStatus Guess
     | SubmittedWord
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        firstLetter =
+            model.firstLetter
+
+        secondLetter =
+            model.secondLetter
+
+        thirdLetter =
+            model.thirdLetter
+
+        fourthLetter =
+            model.fourthLetter
+
+        fifthLetter =
+            model.fifthLetter
+    in
     case msg of
         NoOp ->
             ( model, Cmd.none )
@@ -152,21 +204,6 @@ update msg model =
 
                 Just selectedPosition ->
                     let
-                        firstLetter =
-                            model.firstLetter
-
-                        secondLetter =
-                            model.secondLetter
-
-                        thirdLetter =
-                            model.thirdLetter
-
-                        fourthLetter =
-                            model.fourthLetter
-
-                        fifthLetter =
-                            model.fifthLetter
-
                         updatedModel =
                             case selectedPosition of
                                 First ->
@@ -225,7 +262,7 @@ update msg model =
 
         ChangedStatus letter ->
             let
-                newLetter =
+                nextStatus =
                     { letter
                         | status =
                             case letter.status of
@@ -244,27 +281,74 @@ update msg model =
             in
             ( case letter.position of
                 First ->
-                    { model | firstLetter = newLetter }
+                    { model | firstLetter = nextStatus }
 
                 Second ->
-                    { model | secondLetter = newLetter }
+                    { model | secondLetter = nextStatus }
 
                 Third ->
-                    { model | thirdLetter = newLetter }
+                    { model | thirdLetter = nextStatus }
 
                 Fourth ->
-                    { model | fourthLetter = newLetter }
+                    { model | fourthLetter = nextStatus }
 
                 Fifth ->
-                    { model | fifthLetter = newLetter }
+                    { model | fifthLetter = nextStatus }
             , Cmd.none
             )
 
         SubmittedWord ->
-            ( model, Cmd.none )
+            let
+                lockOrResetGuess : Guess -> Guess
+                lockOrResetGuess guess =
+                    if guess.status == Correct then
+                        { guess
+                            | status = Locked
+                        }
+
+                    else
+                        { guess
+                            | char = Nothing
+                            , status = Unknown
+                        }
+            in
+            if allLettersSet firstLetter secondLetter thirdLetter fourthLetter fifthLetter then
+                case lettersToWord firstLetter secondLetter thirdLetter fourthLetter fifthLetter of
+                    Just word ->
+                        ( { model
+                            | guessedWord =
+                                updateGuessedWord firstLetter secondLetter thirdLetter fourthLetter fifthLetter model.guessedWord
+                            , firstLetter = lockOrResetGuess model.firstLetter
+                            , secondLetter = lockOrResetGuess model.secondLetter
+                            , thirdLetter = lockOrResetGuess model.thirdLetter
+                            , fourthLetter = lockOrResetGuess model.fourthLetter
+                            , fifthLetter = lockOrResetGuess model.fifthLetter
+                            , selectedLetterPosition = Nothing
+                          }
+                        , Cmd.none
+                        )
+
+                    Nothing ->
+                        ( model, Cmd.none )
+
+            else
+                ( model, Cmd.none )
 
 
-lettersToWord : Letter -> Letter -> Letter -> Letter -> Letter -> Maybe String
+allLettersSet : Guess -> Guess -> Guess -> Guess -> Guess -> Bool
+allLettersSet first second third fourth fifth =
+    List.any
+        (\i -> i.status == Unknown)
+        [ first
+        , second
+        , third
+        , fourth
+        , fifth
+        ]
+        |> not
+
+
+lettersToWord : Guess -> Guess -> Guess -> Guess -> Guess -> Maybe String
 lettersToWord first second third fourth fifth =
     let
         submittedString =
@@ -277,7 +361,12 @@ lettersToWord first second third fourth fifth =
         Nothing
 
 
-letterCharToString : Letter -> String
+
+-- eliminateLetters : String -> List Char
+-- elinimateLetters str =
+
+
+letterCharToString : Guess -> String
 letterCharToString letter =
     case letter.char of
         Nothing ->
@@ -287,9 +376,59 @@ letterCharToString letter =
             String.fromChar char
 
 
+updateGuessedWord : Guess -> Guess -> Guess -> Guess -> Guess -> List Char -> List Char
+updateGuessedWord first second third fourth fifth guessedWord =
+    let
+        extractChar guess =
+            case guess.char of
+                Nothing ->
+                    '_'
+
+                Just c ->
+                    case guess.status of
+                        Unknown ->
+                            '_'
+
+                        Incorrect ->
+                            '_'
+
+                        _ ->
+                            c
+    in
+    guessedWord
+        |> updateCharInGuessedWord (extractChar first) 0
+        |> updateCharInGuessedWord (extractChar second) 1
+        |> updateCharInGuessedWord (extractChar third) 2
+        |> updateCharInGuessedWord (extractChar fourth) 3
+        |> updateCharInGuessedWord (extractChar fifth) 4
+
+
+updateCharInGuessedWord : Char -> Int -> List Char -> List Char
+updateCharInGuessedWord char position guessedWord =
+    case List.drop position guessedWord |> List.head of
+        Nothing ->
+            guessedWord
+
+        Just '_' ->
+            {-
+               if position = 0 (first char)
+               [] + [x] ++ [2, 3, 4, 5]
+
+               if position = 1 (second char)
+               [1] + [x] + [3, 4, 5]
+
+               if position = 4 (last char)
+               [1, 2, 3, 4] + [x] + []
+            -}
+            List.take position guessedWord ++ [ char ] ++ List.drop (position + 1) guessedWord
+
+        _ ->
+            guessedWord
+
+
 {-| Move the cursor to the next open letter position
 -}
-findNextUnlockedPosition : List Letter -> Maybe Position -> Maybe Position
+findNextUnlockedPosition : List Guess -> Maybe Position -> Maybe Position
 findNextUnlockedPosition letters activePosition =
     let
         filteredList =
@@ -354,14 +493,40 @@ view model =
             , viewLetterBox model.selectedLetterPosition model.fourthLetter
             , viewLetterBox model.selectedLetterPosition model.fifthLetter
             ]
-        , p
-            []
-            [ text ("Current possible words: " ++ (List.length model.activeWords |> toString)) ]
+        , button
+            [ onClick SubmittedWord
+            , type_ "button"
+            , class
+                ("px-3 py-2 rounded-sm mb-4"
+                    ++ (if allLettersSet model.firstLetter model.secondLetter model.thirdLetter model.fourthLetter model.fifthLetter then
+                            " bg-slate-300"
+
+                        else
+                            " bg-slate-100 cursor-not-allowed"
+                       )
+                )
+            ]
+            [ text "Submit" ]
+        , div
+            [ class "text-sm" ]
+            [ p
+                []
+                [ text ("Remaining words: " ++ (List.length model.activeWords |> toString) ++ " of " ++ (List.length Words.wordList |> toString)) ]
+            ]
         ]
 
 
-viewLetterBox : Maybe Position -> Letter -> Html Msg
-viewLetterBox maybePosition letter =
+viewPossibleLetters : List Char -> Html Msg
+viewPossibleLetters letters =
+    span
+        []
+        (List.map (\l -> span [ class "mr-1" ] [ text <| String.toUpper <| String.fromChar l ]) letters)
+
+
+{-| Letter box view and styling logic
+-}
+viewLetterBox : Maybe Position -> Guess -> Html Msg
+viewLetterBox maybePosition guess =
     let
         isSelected =
             case maybePosition of
@@ -369,7 +534,7 @@ viewLetterBox maybePosition letter =
                     False
 
                 Just position ->
-                    position == letter.position
+                    position == guess.position
 
         selectedStyle =
             case maybePosition of
@@ -377,8 +542,8 @@ viewLetterBox maybePosition letter =
                     ""
 
                 Just position ->
-                    if position == letter.position then
-                        case letter.status of
+                    if position == guess.position then
+                        case guess.status of
                             Unknown ->
                                 " border-8 border-slate-700"
 
@@ -395,7 +560,7 @@ viewLetterBox maybePosition letter =
                         ""
 
         statusStyle =
-            case letter.status of
+            case guess.status of
                 Unknown ->
                     " border-8 border-slate-300"
 
@@ -407,25 +572,35 @@ viewLetterBox maybePosition letter =
 
                 Locked ->
                     " bg-green-500 border-0 text-white"
+
+        cursorStyle =
+            if guess.status == Locked then
+                " cursor-not-allowed"
+
+            else if isSelected && guess.char /= Nothing then
+                " cursor-pointer"
+
+            else
+                " cursor-text"
     in
     div
-        [ class ("p-4 text-center w-24 h-24 flex items-center justify-center" ++ statusStyle ++ selectedStyle)
+        [ class ("p-4 text-center w-24 h-24 flex items-center justify-center" ++ statusStyle ++ selectedStyle ++ cursorStyle)
         , if isSelected then
             onClick <|
-                case letter.char of
+                case guess.char of
                     Nothing ->
                         NoOp
 
                     Just _ ->
-                        ChangedStatus letter
+                        ChangedStatus guess
 
           else
-            onClick <| SelectedLetter letter
+            onClick <| SelectedLetter guess
         ]
         [ p
             [ class "mt-0 pt-0 text-7xl leading-none" ]
             [ text <|
-                case letter.char of
+                case guess.char of
                     Nothing ->
                         ""
 
