@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser
 import Browser.Events
 import Debug exposing (toString)
-import Html exposing (Html, button, div, h1, h2, p, span, text)
+import Html exposing (Html, button, div, h1, h2, li, ol, p, span, text)
 import Html.Attributes exposing (class, type_)
 import Html.Events exposing (onClick)
 import Json.Decode as Decode
@@ -59,6 +59,7 @@ init _ =
             , '_'
             , '_'
             ]
+      , showWordList = False
       }
     , Cmd.none
     )
@@ -78,6 +79,7 @@ type alias Model =
     , fifthLetter : Guess
     , selectedLetterPosition : Maybe Position
     , guessedWord : List Char
+    , showWordList : Bool
     }
 
 
@@ -172,6 +174,7 @@ update msg model =
                                         | firstLetter =
                                             { firstLetter
                                                 | char = Just char
+                                                , status = Incorrect
                                             }
                                     }
 
@@ -180,6 +183,7 @@ update msg model =
                                         | secondLetter =
                                             { secondLetter
                                                 | char = Just char
+                                                , status = Incorrect
                                             }
                                     }
 
@@ -188,6 +192,7 @@ update msg model =
                                         | thirdLetter =
                                             { thirdLetter
                                                 | char = Just char
+                                                , status = Incorrect
                                             }
                                     }
 
@@ -196,6 +201,7 @@ update msg model =
                                         | fourthLetter =
                                             { fourthLetter
                                                 | char = Just char
+                                                , status = Incorrect
                                             }
                                     }
 
@@ -204,6 +210,7 @@ update msg model =
                                         | fifthLetter =
                                             { fifthLetter
                                                 | char = Just char
+                                                , status = Incorrect
                                             }
                                     }
                     in
@@ -234,7 +241,7 @@ update msg model =
                                     Correct
 
                                 Correct ->
-                                    Unknown
+                                    Incorrect
 
                                 Locked ->
                                     Locked
@@ -266,6 +273,9 @@ update msg model =
                         { guess
                             | status = Locked
                         }
+
+                    else if guess.status == Locked then
+                        guess
 
                     else
                         { guess
@@ -495,7 +505,7 @@ view model =
                             " bg-slate-300"
 
                         else
-                            " bg-slate-100 cursor-not-allowed"
+                            " bg-slate-100 cursor-not-allowed text-slate-400"
                        )
                 )
             ]
@@ -506,6 +516,45 @@ view model =
                 []
                 [ text ("Remaining words: " ++ (List.length model.activeWords |> toString) ++ " of " ++ (List.length Words.wordList |> toString)) ]
             ]
+
+        -- , div
+        --     [ class "mt-4" ]
+        --     [ ol
+        --         []
+        --         (List.map (\i -> li [] [ text i ]) model.activeWords)
+        --     ]
+        , div
+            []
+            (List.map
+                (\i -> viewWordsByChar model.activeWords i)
+                [ 'a'
+                , 'b'
+                , 'c'
+                , 'd'
+                , 'e'
+                , 'f'
+                , 'g'
+                , 'h'
+                , 'i'
+                , 'j'
+                , 'k'
+                , 'l'
+                , 'm'
+                , 'n'
+                , 'o'
+                , 'p'
+                , 'q'
+                , 'r'
+                , 's'
+                , 't'
+                , 'u'
+                , 'v'
+                , 'w'
+                , 'x'
+                , 'y'
+                , 'z'
+                ]
+            )
         ]
 
 
@@ -602,6 +651,29 @@ viewLetterBox maybePosition guess =
                             |> String.toUpper
             ]
         ]
+
+
+viewWordsByChar : List String -> Char -> Html Msg
+viewWordsByChar words char =
+    let
+        filteredWords =
+            List.filter
+                (\str -> String.startsWith (String.fromChar char) str)
+                words
+    in
+    if List.isEmpty filteredWords then
+        text ""
+
+    else
+        div
+            [ class "mt-4" ]
+            [ h2
+                [ class "text-lg font-bold mt-2" ]
+                [ text <| String.toUpper <| String.fromChar char ]
+            , ol
+                []
+                (List.map (\i -> li [] [ text i ]) filteredWords)
+            ]
 
 
 {-| Capture keyboard events
