@@ -50,18 +50,13 @@ init _ =
             , status = Unknown
             , position = Fifth
             }
-      , selectedLetter =
+      , selectedLetterPosition =
             Nothing
       , newChar =
             Nothing
       }
     , Cmd.none
     )
-
-
-subscriptions : Model -> Sub Msg
-subscriptions _ =
-    Browser.Events.onKeyUp keyDecoder
 
 
 
@@ -77,7 +72,7 @@ type alias Model =
     , thirdLetter : Letter
     , fourthLetter : Letter
     , fifthLetter : Letter
-    , selectedLetter : Maybe Letter
+    , selectedLetterPosition : Maybe Position
     , newChar : Maybe Char
     }
 
@@ -134,28 +129,28 @@ update msg model =
         SelectedLetter letter ->
             ( case letter.position of
                 First ->
-                    { model | selectedLetter = Just model.firstLetter }
+                    { model | selectedLetterPosition = Just First }
 
                 Second ->
-                    { model | selectedLetter = Just model.secondLetter }
+                    { model | selectedLetterPosition = Just Second }
 
                 Third ->
-                    { model | selectedLetter = Just model.thirdLetter }
+                    { model | selectedLetterPosition = Just Third }
 
                 Fourth ->
-                    { model | selectedLetter = Just model.fourthLetter }
+                    { model | selectedLetterPosition = Just Fourth }
 
                 Fifth ->
-                    { model | selectedLetter = Just model.fifthLetter }
+                    { model | selectedLetterPosition = Just Fifth }
             , Cmd.none
             )
 
         UpdatedChar char ->
-            case model.selectedLetter of
+            case model.selectedLetterPosition of
                 Nothing ->
                     ( model, Cmd.none )
 
-                Just selected ->
+                Just selectedPosition ->
                     let
                         firstLetter =
                             model.firstLetter
@@ -173,18 +168,13 @@ update msg model =
                             model.fifthLetter
 
                         updatedModel =
-                            case selected.position of
+                            case selectedPosition of
                                 First ->
                                     { model
                                         | firstLetter =
                                             { firstLetter
                                                 | char = Just char
                                             }
-                                        , selectedLetter =
-                                            Just
-                                                { firstLetter
-                                                    | char = Just char
-                                                }
                                     }
 
                                 Second ->
@@ -193,11 +183,6 @@ update msg model =
                                             { secondLetter
                                                 | char = Just char
                                             }
-                                        , selectedLetter =
-                                            Just
-                                                { secondLetter
-                                                    | char = Just char
-                                                }
                                     }
 
                                 Third ->
@@ -206,11 +191,6 @@ update msg model =
                                             { thirdLetter
                                                 | char = Just char
                                             }
-                                        , selectedLetter =
-                                            Just
-                                                { thirdLetter
-                                                    | char = Just char
-                                                }
                                     }
 
                                 Fourth ->
@@ -219,11 +199,6 @@ update msg model =
                                             { fourthLetter
                                                 | char = Just char
                                             }
-                                        , selectedLetter =
-                                            Just
-                                                { fourthLetter
-                                                    | char = Just char
-                                                }
                                     }
 
                                 Fifth ->
@@ -232,14 +207,19 @@ update msg model =
                                             { fifthLetter
                                                 | char = Just char
                                             }
-                                        , selectedLetter =
-                                            Just
-                                                { fifthLetter
-                                                    | char = Just char
-                                                }
                                     }
                     in
-                    ( updatedModel
+                    ( { updatedModel
+                        | selectedLetterPosition =
+                            findNextUnlockedPosition
+                                [ firstLetter
+                                , secondLetter
+                                , thirdLetter
+                                , fourthLetter
+                                , fifthLetter
+                                ]
+                                model.selectedLetterPosition
+                      }
                     , Cmd.none
                     )
 
@@ -307,6 +287,51 @@ letterCharToString letter =
             String.fromChar char
 
 
+{-| Move the cursor to the next open letter position
+-}
+findNextUnlockedPosition : List Letter -> Maybe Position -> Maybe Position
+findNextUnlockedPosition letters activePosition =
+    let
+        filteredList =
+            case activePosition of
+                Nothing ->
+                    List.filter (\l -> l.status /= Locked) letters
+
+                Just First ->
+                    List.filter
+                        (\l -> l.status /= Locked)
+                        (List.drop 1 letters ++ List.take 1 letters)
+
+                Just Second ->
+                    List.filter
+                        (\l -> l.status /= Locked)
+                        (List.drop 2 letters ++ List.take 2 letters)
+
+                Just Third ->
+                    List.filter
+                        (\l -> l.status /= Locked)
+                        (List.drop 3 letters ++ List.take 3 letters)
+
+                Just Fourth ->
+                    List.filter
+                        (\l -> l.status /= Locked)
+                        (List.drop 4 letters ++ List.take 4 letters)
+
+                Just Fifth ->
+                    List.filter (\l -> l.status /= Locked) letters
+    in
+    if List.isEmpty filteredList then
+        Nothing
+
+    else
+        case List.head filteredList of
+            Nothing ->
+                Nothing
+
+            Just letter ->
+                Just letter.position
+
+
 
 -- fetchPosts : Cmd Msg
 -- fetchPosts =
@@ -323,11 +348,11 @@ view model =
         [ h1 [ class "mb-5" ] [ text "Wordle Helper" ]
         , div
             [ class "flex mb-6 space-x-2" ]
-            [ viewLetterBox model.selectedLetter model.firstLetter
-            , viewLetterBox model.selectedLetter model.secondLetter
-            , viewLetterBox model.selectedLetter model.thirdLetter
-            , viewLetterBox model.selectedLetter model.fourthLetter
-            , viewLetterBox model.selectedLetter model.fifthLetter
+            [ viewLetterBox model.selectedLetterPosition model.firstLetter
+            , viewLetterBox model.selectedLetterPosition model.secondLetter
+            , viewLetterBox model.selectedLetterPosition model.thirdLetter
+            , viewLetterBox model.selectedLetterPosition model.fourthLetter
+            , viewLetterBox model.selectedLetterPosition model.fifthLetter
             ]
         , p
             []
@@ -335,42 +360,53 @@ view model =
         ]
 
 
-viewLetterBox : Maybe Letter -> Letter -> Html Msg
-viewLetterBox maybeSelected letter =
+viewLetterBox : Maybe Position -> Letter -> Html Msg
+viewLetterBox maybePosition letter =
     let
         isSelected =
-            case maybeSelected of
+            case maybePosition of
                 Nothing ->
                     False
 
-                Just l ->
-                    l == letter
+                Just position ->
+                    position == letter.position
 
         selectedStyle =
-            case maybeSelected of
+            case maybePosition of
                 Nothing ->
-                    " border-4 border-slate-300"
+                    ""
 
-                Just selected ->
-                    if selected == letter then
-                        " border-4 border-slate-700"
+                Just position ->
+                    if position == letter.position then
+                        case letter.status of
+                            Unknown ->
+                                " border-8 border-slate-700"
+
+                            Incorrect ->
+                                " border-8 border-slate-700"
+
+                            Correct ->
+                                " border-8 border-green-700"
+
+                            Locked ->
+                                ""
 
                     else
-                        " border-4 border-slate-300"
+                        ""
 
         statusStyle =
             case letter.status of
                 Unknown ->
-                    ""
+                    " border-8 border-slate-300"
 
                 Incorrect ->
-                    " bg-slate-500 border-4 border-slate-700 text-white"
+                    " bg-slate-500 border-slate-300 text-white"
 
                 Correct ->
-                    " bg-green-500 border-4 border-green-700 text-white"
+                    " bg-green-500 text-white"
 
                 Locked ->
-                    " bg-green-500 border-4 border-green-700 text-white"
+                    " bg-green-500 border-0 text-white"
     in
     div
         [ class ("p-4 text-center w-24 h-24 flex items-center justify-center" ++ statusStyle ++ selectedStyle)
@@ -400,6 +436,11 @@ viewLetterBox maybeSelected letter =
         ]
 
 
+{-| Capture keyboard events
+
+Useful reference: <https://stackoverflow.com/questions/44383764/how-to-listen-for-both-keypress-and-keydown-events-in-elm>
+
+-}
 keyDecoder : Decode.Decoder Msg
 keyDecoder =
     Decode.map toKey (Decode.field "key" Decode.string)
@@ -417,3 +458,8 @@ toKey str =
 
         _ ->
             NoOp
+
+
+subscriptions : Model -> Sub Msg
+subscriptions _ =
+    Browser.Events.onKeyUp keyDecoder
